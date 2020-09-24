@@ -40,15 +40,12 @@ def die(msg):
     sys.exit(-1)
 
 
-def play_or_resume(prev_err=None):
-    paused = False
-    if not vc.is_paused():  # Not currently playing anything
-        source = discord.FFmpegPCMAudio(os.path.join('music', cur_file), executable=os.getenv('FFMPEG_PATH'))
-        vc.play(source, after=play_or_resume)
-    else:
-        paused = True
-        vc.resume()
-    logging.info(f'Request to play music: {"resuming (music was paused)" if paused else f"playing music/{cur_file} from file"}')
+async def play_or_resume(prev_err=None):
+    source = await discord.FFmpegOpusAudio.from_probe(os.path.join('music', cur_file))
+    # print(source.volume)
+    # source.volume = 1
+    vc.play(source)
+    logging.info(f'Request to play music: playing music/{cur_file} from file"')
 
 
 @bot.event
@@ -61,7 +58,7 @@ async def on_ready():
             logging.info(f'Found channel {channel.name} (id: {channel.id})')
             try:
                 vc = await channel.connect()
-                play_or_resume()
+                await play_or_resume()
                 logging.info('Joined voice channel')
             except Exception as e:
                 die(f'Error occured while joining voice channel: {type(e)}: {e}')
@@ -75,11 +72,14 @@ async def on_ready():
 async def on_voice_state_update(user, before, after):
     if user.bot:
         return
+    logging.info(f'Voice channel status change')
     if not before.channel and after.channel:  # Joined
-        if len(after.channel.members) == 1:
-            play_or_resume()
+        if len(after.channel.members) == 2:
+            logging.info(f'User join (first user)')
+            await play_or_resume()
     elif before.channel and not after.channel:  # Left
-        if len(before.channel.members) == 0 and vc.is_playing():
+        if len(before.channel.members) == 1 and vc.is_playing():
+            logging.info(f'User leave (last user)')
             vc.pause()
 
 
