@@ -1,3 +1,4 @@
+import subprocess as sub
 import discord
 from discord.utils import find
 import logging
@@ -40,12 +41,22 @@ def die(msg):
     sys.exit(-1)
 
 
-async def play_or_resume(prev_err=None):
-    source = await discord.FFmpegOpusAudio.from_probe(os.path.join('music', cur_file))
-    # print(source.volume)
-    # source.volume = 1
-    vc.play(source)
-    logging.info(f'Request to play music: playing music/{cur_file} from file"')
+async def check_play():
+    user_cnt = sum(map(lambda m: int(not m.bot), vc.channel.members))
+
+    logging.info('Checking current play state...')
+    if user_cnt == 0:
+        if vc.is_playing():
+            vc.pause()
+            logging.info('Channel now empty, pausing song...')
+    else:
+        if vc.is_paused():
+            vc.resume()
+            logging.info('Channel no longer empty, resuming song...')
+        else:
+            source = await discord.FFmpegOpusAudio.from_probe(os.path.join('music', cur_file))
+            vc.play(source, after=check_play)
+            logging.info(f'Channel no longer empty, starting music/{cur_file} from file"')
 
 
 @bot.event
@@ -58,7 +69,7 @@ async def on_ready():
             logging.info(f'Found channel {channel.name} (id: {channel.id})')
             try:
                 vc = await channel.connect()
-                await play_or_resume()
+                await check_play()
                 logging.info('Joined voice channel')
             except Exception as e:
                 die(f'Error occured while joining voice channel: {type(e)}: {e}')
@@ -73,14 +84,7 @@ async def on_voice_state_update(user, before, after):
     if user.bot:
         return
     logging.info(f'Voice channel status change')
-    if not before.channel and after.channel:  # Joined
-        if len(after.channel.members) == 2:
-            logging.info(f'User join (first user)')
-            await play_or_resume()
-    elif before.channel and not after.channel:  # Left
-        if len(before.channel.members) == 1 and vc.is_playing():
-            logging.info(f'User leave (last user)')
-            vc.pause()
+    await check_play()
 
 
 # Commands
@@ -98,7 +102,16 @@ async def _command_list(ctx):
     help='Select a different version of plastic love'
 )
 async def _command_select(ctx, file):
-    pass
+    global cur_file
+    fs = os.listdir('music')
+    file = file.strip()
+    if file not in fs:
+        await ctx.send(f'File {file} does not exist!')
+    else:
+        cur_file = file
+        if vc.is_playing() or vc.is_paused():
+            vc.stop()
+        await check_play()
 
 
 @bot.command(
@@ -106,14 +119,23 @@ async def _command_select(ctx, file):
     help='Download a new version of plastic love (Youtube links only)'
 )
 async def _command_download(ctx, link, file_name):
-    pass
+    GREEN = 0x008E44
+    RED = 0xA62019
+
+    async with ctx.channel.typing():
+        res = sub.run(['youtube-dl', '--extract-audio', '--audio-format', 'mp3', '--output', 'music/' + file_name, link],
+                      text=True, stdout=sub.PIPE, stderr=sub.PIPE)
+        await ctx.send(embed=discord.Embed(title='Download Info', color=RED if res.returncode else GREEN)
+                       .add_field(name='Process Output', value=res.stdout or 'N/A', inline=False)
+                       .add_field(name='Process Errors', value=res.stderr or 'N/A', inline=False)
+                       .add_field(name='Exit Code', value=str(res.returncode)))
 
 
 @bot.command(
     name='remove',
     help='Remove a version of plastic love'
 )
-async def _command_download(ctx, file_name):
+async def _command_remove(ctx, file_name):
     await ctx.send('No!')  # No
 
 
