@@ -1,3 +1,5 @@
 venv/
 .env
-.env-test
+.env-iqc
+.env-personal   
+.env-personal
