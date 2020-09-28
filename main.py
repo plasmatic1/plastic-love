@@ -63,6 +63,8 @@ async def check_play():
 async def on_ready():
     global vc
     logging.info(f'Logged in as {bot.user.name}')
+
+    await bot.change_presence(activity=discord.Game(name='Plastic Love'))
     if guild := find(lambda g: str(g.id) == os.getenv('GUILD_ID'), bot.guilds):
         logging.info(f'Found guild {guild.name} (id: {guild.id})')
         if channel := find(lambda c: str(c.id) == os.getenv('CHANNEL_ID'), guild.voice_channels):
