@@ -2,8 +2,9 @@
 
 Why would you listen to anything else?
 
-I'm just playing games
-I know that's plastic loveeeeee
+> I'm just playing games
+>
+> I know that's plastic loveeeeee
 
 ## Instructions
 
@@ -13,4 +14,9 @@ I know that's plastic loveeeeee
 
 ## Dotenv Example
 
-WIP
+```
+TOKEN=a.random.discord.bot.token
+GUILD_ID=384283281382482132
+CHANNEL_ID=283481288428747212
+PREFIX=--
+```

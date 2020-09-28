@@ -19,7 +19,7 @@ coloredlogs.install(fmt=LOG_FORMAT, datefmt=TIME_FORMAT)
 # Check Config
 load_dotenv()
 logging.info('Checking env for configuration options...')
-for key in ['TOKEN', 'GUILD_ID', 'CHANNEL_ID', 'PREFIX', 'FFMPEG_PATH']:
+for key in ['TOKEN', 'GUILD_ID', 'CHANNEL_ID', 'PREFIX']:
     if key not in os.environ:
         logging.error(f'env missing option {key}!')
         sys.exit(-1)
